@@ -17,7 +17,7 @@ jobs:
           sudo curl --fail --silent --show-error --location https://raw.githubusercontent.com/ros/rosdistro/master/ros.key --output /usr/share/keyrings/ros-archive-keyring.gpg
           printf 'deb [arch=%s signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] http://packages.ros.org/ros2/ubuntu %s main\n' "$(dpkg --print-architecture)" "$(source /etc/os-release && printf '%s' "$UBUNTU_CODENAME")" | sudo tee /etc/apt/sources.list.d/ros2.list > /dev/null
           sudo apt-get update
-          sudo apt-get install --yes build-essential cmake git libconcurrentqueue-dev libcpp-httplib-dev libcurl4-openssl-dev libfmt-dev libssl-dev nlohmann-json3-dev python3-colcon-common-extensions python3-vcstool ros-jazzy-ament-cmake-vendor-package ros-jazzy-rosbag2-storage ros-jazzy-yaml-cpp-vendor
+          sudo apt-get install --yes build-essential cmake git libconcurrentqueue-dev libcpp-httplib-dev libcurl4-openssl-dev libfmt-dev libssl-dev nlohmann-json3-dev python3-colcon-common-extensions python3-vcstool ros-jazzy-ament-cmake-vendor-package ros-jazzy-ament-lint-auto ros-jazzy-ament-lint-common ros-jazzy-rosbag2-storage ros-jazzy-yaml-cpp-vendor
       - name: Build packages
         run: |
           source /opt/ros/jazzy/setup.bash
