@@ -1,11 +1,31 @@
-#include "rosbag2_storage_reductstore/config.hpp"
+// Copyright (c) 2026 ReductStore
+// MIT License
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+// THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+// THE SOFTWARE.
+
+#include <yaml-cpp/yaml.h>
 
 #include <cctype>
 #include <cstdlib>
 #include <filesystem>
 #include <stdexcept>
 
-#include <yaml-cpp/yaml.h>
+#include "rosbag2_storage_reductstore/config.hpp"
 
 namespace rosbag2_storage_reductstore
 {
@@ -21,12 +41,14 @@ std::string scalar_value(const YAML::Node & node, const char * name, bool requir
     return "";
   }
   if (!node.IsScalar()) {
-    throw std::runtime_error(std::string("ReductStore configuration field '") + name + "' must be a scalar");
+    throw std::runtime_error(std::string("ReductStore configuration field '") + name +
+          "' must be a scalar");
   }
 
   const auto value = node.as<std::string>();
   if (required && value.empty()) {
-    throw std::runtime_error(std::string("ReductStore configuration field '") + name + "' must not be empty");
+    throw std::runtime_error(std::string("ReductStore configuration field '") + name +
+          "' must not be empty");
   }
   return value;
 }
@@ -37,7 +59,8 @@ bool is_safe_bucket_name(const std::string & value)
     return false;
   }
   for (const auto character : value) {
-    if (!std::isalnum(static_cast<unsigned char>(character)) && character != '-' && character != '_' &&
+    if (!std::isalnum(static_cast<unsigned char>(character)) && character != '-' &&
+      character != '_' &&
       character != '.')
     {
       return false;
@@ -58,7 +81,8 @@ ReductStoreConfig load_config(const std::string & path)
   try {
     root = YAML::LoadFile(path);
   } catch (const YAML::Exception & error) {
-    throw std::runtime_error("Unable to load ReductStore configuration '" + path + "': " + error.what());
+    throw std::runtime_error("Unable to load ReductStore configuration '" + path + "': " +
+        error.what());
   }
   if (!root.IsMap()) {
     throw std::runtime_error("ReductStore configuration must be a YAML map");
@@ -72,11 +96,13 @@ ReductStoreConfig load_config(const std::string & path)
     const auto direct_token = scalar_value(direct_token_node, "api_token", false);
     const auto token_environment = scalar_value(token_environment_node, "api_token_env", false);
     if (direct_token_node && token_environment_node) {
-      throw std::runtime_error("ReductStore configuration cannot set both api_token and api_token_env");
+      throw std::runtime_error(
+          "ReductStore configuration cannot set both api_token and api_token_env");
     }
     if (token_environment_node) {
       if (token_environment.empty()) {
-        throw std::runtime_error("ReductStore configuration field 'api_token_env' must not be empty");
+        throw std::runtime_error(
+            "ReductStore configuration field 'api_token_env' must not be empty");
       }
       const char * token = std::getenv(token_environment.c_str());
       if (token == nullptr || token[0] == '\0') {
