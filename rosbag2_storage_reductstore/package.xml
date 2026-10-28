@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>rosbag2_storage_reductstore</name>
+  <version>0.1.0</version>
+  <description>ReductStore storage plugin scaffold for rosbag2 on ROS 2 Jazzy.</description>
+  <maintainer email="contact@reduct.store">ReductStore</maintainer>
+  <license>MIT</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <depend>pluginlib</depend>
+  <depend>reductcpp_vendor</depend>
+  <depend>rosbag2_storage</depend>
+  <depend>yaml_cpp_vendor</depend>
+
+  <test_depend>ament_cmake_gtest</test_depend>
+  <test_depend>ament_lint_auto</test_depend>
+  <test_depend>ament_lint_common</test_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>
