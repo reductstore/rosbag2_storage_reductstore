@@ -34,6 +34,7 @@ find_package(reductcpp REQUIRED)
 find_package(rosbag2_storage REQUIRED)
 find_package(yaml_cpp_vendor REQUIRED)
 find_package(yaml-cpp REQUIRED)
+get_filename_component(_reductcpp_vendor_prefix "${reductcpp_vendor_DIR}/../../.." ABSOLUTE)
 
 add_library(${PROJECT_NAME} SHARED
   src/config.cpp
@@ -42,7 +43,7 @@ add_library(${PROJECT_NAME} SHARED
 target_include_directories(${PROJECT_NAME} PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>
-  $<TARGET_PROPERTY:reductcpp::reductcpp,INTERFACE_INCLUDE_DIRECTORIES>
+  "${_reductcpp_vendor_prefix}/opt/reductcpp_vendor/include"
 )
 ament_target_dependencies(${PROJECT_NAME}
   pluginlib
