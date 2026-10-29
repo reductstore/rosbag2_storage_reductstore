@@ -18,33 +18,29 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+#include "rosbag2_storage_reductstore/reductstore_storage.hpp"
+
 #include <reduct/client.h>
 
+#include <pluginlib/class_list_macros.hpp>
 #include <stdexcept>
 #include <utility>
 
-#include <pluginlib/class_list_macros.hpp>
+#include "rcutils/logging_macros.h"
 
-#include "rosbag2_storage_reductstore/reductstore_storage.hpp"
+constexpr const char* kLogger = "rosbag2_storage_reductstore";
 
-namespace rosbag2_storage_reductstore
-{
-namespace
-{
+namespace rosbag2_storage_reductstore {
+namespace {
 
-[[noreturn]] void not_implemented()
-{
-  throw std::runtime_error("ReductStore storage backend is not implemented");
-}
+[[noreturn]] void not_implemented() { throw std::runtime_error("ReductStore storage backend is not implemented"); }
 
 }  // namespace
 
 ReductStoreStorage::~ReductStoreStorage() = default;
 
-void ReductStoreStorage::open(
-  const rosbag2_storage::StorageOptions & storage_options,
-  rosbag2_storage::storage_interfaces::IOFlag io_flag)
-{
+void ReductStoreStorage::open(const rosbag2_storage::StorageOptions& storage_options,
+                              rosbag2_storage::storage_interfaces::IOFlag io_flag) {
   if (storage_options.max_bagfile_size != 0) {
     throw std::runtime_error("ReductStore storage does not support bagfile size splitting");
   }
@@ -62,115 +58,79 @@ void ReductStoreStorage::open(
   bucket_name_ = bucket_name_from_uri(storage_options.uri);
   uri_ = storage_options.uri;
   io_flag_ = io_flag;
-  not_implemented();
+
+  RCUTILS_LOG_INFO_NAMED(
+    "rosbag2_storage_reductstore",
+    "Starting with configuration: url='%s', bucket='%s', authentication=%s",
+    config_.url.c_str(), bucket_name_.c_str(), config_.api_token.empty() ? "disabled" : "enabled");
 }
 
-void ReductStoreStorage::write(std::shared_ptr<const rosbag2_storage::SerializedBagMessage> msg)
-{
+void ReductStoreStorage::write(std::shared_ptr<const rosbag2_storage::SerializedBagMessage> msg) {
   static_cast<void>(msg);
   not_implemented();
 }
 
-void ReductStoreStorage::write(
-  const std::vector<std::shared_ptr<const rosbag2_storage::SerializedBagMessage>> & msg)
-{
+void ReductStoreStorage::write(const std::vector<std::shared_ptr<const rosbag2_storage::SerializedBagMessage>>& msg) {
   static_cast<void>(msg);
   not_implemented();
 }
 
-void ReductStoreStorage::update_metadata(const rosbag2_storage::BagMetadata & bag_metadata)
-{
+void ReductStoreStorage::update_metadata(const rosbag2_storage::BagMetadata& bag_metadata) {
   static_cast<void>(bag_metadata);
   not_implemented();
 }
 
-void ReductStoreStorage::create_topic(
-  const rosbag2_storage::TopicMetadata & topic,
-  const rosbag2_storage::MessageDefinition & message_definition)
-{
+void ReductStoreStorage::create_topic(const rosbag2_storage::TopicMetadata& topic,
+                                      const rosbag2_storage::MessageDefinition& message_definition) {
   static_cast<void>(topic);
   static_cast<void>(message_definition);
   not_implemented();
 }
 
-void ReductStoreStorage::remove_topic(const rosbag2_storage::TopicMetadata & topic)
-{
+void ReductStoreStorage::remove_topic(const rosbag2_storage::TopicMetadata& topic) {
   static_cast<void>(topic);
   not_implemented();
 }
 
-bool ReductStoreStorage::set_read_order(const rosbag2_storage::ReadOrder & read_order)
-{
+bool ReductStoreStorage::set_read_order(const rosbag2_storage::ReadOrder& read_order) {
   static_cast<void>(read_order);
   not_implemented();
 }
 
-bool ReductStoreStorage::has_next()
-{
-  not_implemented();
-}
+bool ReductStoreStorage::has_next() { not_implemented(); }
 
-std::shared_ptr<rosbag2_storage::SerializedBagMessage> ReductStoreStorage::read_next()
-{
-  not_implemented();
-}
+std::shared_ptr<rosbag2_storage::SerializedBagMessage> ReductStoreStorage::read_next() { not_implemented(); }
 
-std::vector<rosbag2_storage::TopicMetadata> ReductStoreStorage::get_all_topics_and_types()
-{
-  not_implemented();
-}
+std::vector<rosbag2_storage::TopicMetadata> ReductStoreStorage::get_all_topics_and_types() { not_implemented(); }
 
-void ReductStoreStorage::get_all_message_definitions(
-  std::vector<rosbag2_storage::MessageDefinition> & definitions)
-{
+void ReductStoreStorage::get_all_message_definitions(std::vector<rosbag2_storage::MessageDefinition>& definitions) {
   static_cast<void>(definitions);
   not_implemented();
 }
 
-rosbag2_storage::BagMetadata ReductStoreStorage::get_metadata()
-{
-  not_implemented();
-}
+rosbag2_storage::BagMetadata ReductStoreStorage::get_metadata() { not_implemented(); }
 
-std::string ReductStoreStorage::get_relative_file_path() const
-{
-  return uri_;
-}
+std::string ReductStoreStorage::get_relative_file_path() const { return uri_; }
 
-uint64_t ReductStoreStorage::get_bagfile_size() const
-{
-  return 0;
-}
+uint64_t ReductStoreStorage::get_bagfile_size() const { return 0; }
 
-std::string ReductStoreStorage::get_storage_identifier() const
-{
-  return "reductstore";
-}
+std::string ReductStoreStorage::get_storage_identifier() const { return "reductstore"; }
 
-uint64_t ReductStoreStorage::get_minimum_split_file_size() const
-{
-  return 0;
-}
+uint64_t ReductStoreStorage::get_minimum_split_file_size() const { return 0; }
 
-void ReductStoreStorage::set_filter(const rosbag2_storage::StorageFilter & storage_filter)
-{
+void ReductStoreStorage::set_filter(const rosbag2_storage::StorageFilter& storage_filter) {
   static_cast<void>(storage_filter);
   not_implemented();
 }
 
-void ReductStoreStorage::reset_filter()
-{
-  not_implemented();
-}
+void ReductStoreStorage::reset_filter() { not_implemented(); }
 
-void ReductStoreStorage::seek(const rcutils_time_point_value_t & timestamp)
-{
+void ReductStoreStorage::seek(const rcutils_time_point_value_t& timestamp) {
   static_cast<void>(timestamp);
   not_implemented();
 }
 
 }  // namespace rosbag2_storage_reductstore
 
-PLUGINLIB_EXPORT_CLASS(
-  rosbag2_storage_reductstore::ReductStoreStorage,
-  rosbag2_storage::storage_interfaces::ReadWriteInterface)
+PLUGINLIB_EXPORT_CLASS(rosbag2_storage_reductstore::ReductStoreStorage,
+                       rosbag2_storage::storage_interfaces::ReadWriteInterface)

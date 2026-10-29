@@ -28,6 +28,7 @@ message(STATUS "CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}")
 message(STATUS "Python3_EXECUTABLE=${Python3_EXECUTABLE}")
 
 find_package(ament_cmake REQUIRED)
+find_package(ament_cmake_python REQUIRED)
 find_package(pluginlib REQUIRED)
 find_package(reductcpp_vendor REQUIRED)
 find_package(reductcpp REQUIRED)
@@ -52,6 +53,7 @@ ament_target_dependencies(${PROJECT_NAME}
 )
 target_link_libraries(${PROJECT_NAME} reductcpp::reductcpp yaml-cpp)
 pluginlib_export_plugin_description_file(rosbag2_storage plugin_description.xml)
+ament_python_install_package(rosbag2_storage_reductstore_cli PACKAGE_DIR python/rosbag2_storage_reductstore_cli)
 
 install(DIRECTORY include/ DESTINATION include)
 install(DIRECTORY config/ DESTINATION share/${PROJECT_NAME}/config)
