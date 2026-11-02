@@ -76,4 +76,18 @@ TEST(Storage, FailsExplicitlyAfterValidOpenValidation)
   EXPECT_THROW(storage.open(valid_options()), std::runtime_error);
 }
 
+TEST(Storage, SupportsOnlyAscendingReceivedTimestampReadOrder)
+{
+  rosbag2_storage_reductstore::ReductStoreStorage storage;
+  EXPECT_TRUE(storage.set_read_order({rosbag2_storage::ReadOrder::ReceivedTimestamp, false}));
+  EXPECT_THROW(
+    storage.set_read_order({rosbag2_storage::ReadOrder::ReceivedTimestamp, true}),
+    std::runtime_error);
+  EXPECT_THROW(
+    storage.set_read_order({rosbag2_storage::ReadOrder::PublishedTimestamp, false}),
+    std::runtime_error);
+  EXPECT_THROW(
+    storage.set_read_order({rosbag2_storage::ReadOrder::File, false}), std::runtime_error);
+}
+
 }  // namespace

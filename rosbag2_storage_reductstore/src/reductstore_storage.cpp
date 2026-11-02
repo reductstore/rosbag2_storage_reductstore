@@ -255,8 +255,17 @@ void ReductStoreStorage::remove_topic(const rosbag2_storage::TopicMetadata& topi
 }
 
 bool ReductStoreStorage::set_read_order(const rosbag2_storage::ReadOrder& read_order) {
-  static_cast<void>(read_order);
-  not_implemented();
+  RCUTILS_LOG_DEBUG_NAMED(
+    kLogger,
+    "set_read_order called: sort_by=%d, reverse=%s",
+    static_cast<int>(read_order.sort_by), read_order.reverse ? "true" : "false");
+  if (read_order.reverse) {
+    throw std::runtime_error("ReductStore storage does not support reverse read order");
+  }
+  if (read_order.sort_by != rosbag2_storage::ReadOrder::ReceivedTimestamp) {
+    throw std::runtime_error("ReductStore storage only supports received-timestamp read order");
+  }
+  return true;
 }
 
 bool ReductStoreStorage::has_next() { not_implemented(); }
