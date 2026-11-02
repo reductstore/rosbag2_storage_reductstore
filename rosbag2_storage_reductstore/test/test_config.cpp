@@ -46,6 +46,14 @@ TEST(Config, LoadsAnonymousConnection)
     rosbag2_storage_reductstore::load_config(write_config("url: http://localhost:8383\n").string());
   EXPECT_EQ(config.url, "http://localhost:8383");
   EXPECT_TRUE(config.api_token.empty());
+  EXPECT_EQ(config.max_records_per_batch, 80U);
+}
+
+TEST(Config, LoadsMaximumRecordsPerBatch)
+{
+  const auto config = rosbag2_storage_reductstore::load_config(
+    write_config("url: http://localhost:8383\nmax_records_per_batch: 10\n").string());
+  EXPECT_EQ(config.max_records_per_batch, 10U);
 }
 
 TEST(Config, LoadsDirectToken)
@@ -91,6 +99,18 @@ TEST(Config, RejectsMalformedYaml)
   EXPECT_THROW(
     rosbag2_storage_reductstore::load_config(write_config("url: [unterminated\n").string()),
       std::runtime_error);
+}
+
+TEST(Config, RejectsInvalidMaximumRecordsPerBatch)
+{
+  EXPECT_THROW(
+    rosbag2_storage_reductstore::load_config(
+      write_config("url: http://localhost\nmax_records_per_batch: 0\n").string()),
+    std::runtime_error);
+  EXPECT_THROW(
+    rosbag2_storage_reductstore::load_config(
+      write_config("url: http://localhost\nmax_records_per_batch: invalid\n").string()),
+    std::runtime_error);
 }
 
 TEST(BucketName, HandlesJazzyAndFallbackUris)

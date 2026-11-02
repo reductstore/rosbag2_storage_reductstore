@@ -23,6 +23,8 @@
 #include <reduct/client.h>
 
 #include <pluginlib/class_list_macros.hpp>
+#include <algorithm>
+#include <chrono>
 #include <cstdint>
 #include <source_location>
 #include <stdexcept>
@@ -107,7 +109,6 @@ void ReductStoreStorage::open(const rosbag2_storage::StorageOptions& storage_opt
   config_ = load_config(storage_options.storage_config_uri);
   bucket_name_ = bucket_name_from_uri(storage_options.uri);
   uri_ = storage_options.uri;
-  io_flag_ = io_flag;
 
   reduct::HttpOptions client_options{};
   client_options.api_token = config_.api_token;
@@ -133,23 +134,72 @@ void ReductStoreStorage::open(const rosbag2_storage::StorageOptions& storage_opt
 }
 
 void ReductStoreStorage::write(std::shared_ptr<const rosbag2_storage::SerializedBagMessage> msg) {
-  if (!msg) {
-    RCUTILS_LOG_DEBUG_NAMED(kLogger, "write(single) called with a null message");
-  } else {
-    const auto payload_size = msg->serialized_data ? msg->serialized_data->buffer_length : 0;
-    RCUTILS_LOG_DEBUG_NAMED(
-      kLogger,
-      "write(single) called: topic='%s', payload_size=%zu, recv_timestamp=%lld, send_timestamp=%lld",
-      msg->topic_name.c_str(), payload_size,
-      static_cast<long long>(msg->recv_timestamp),
-      static_cast<long long>(msg->send_timestamp));
-  }
-  not_implemented();
+  write_messages({std::move(msg)});
 }
 
-void ReductStoreStorage::write(const std::vector<std::shared_ptr<const rosbag2_storage::SerializedBagMessage>>& msg) {
-  RCUTILS_LOG_DEBUG_NAMED(kLogger, "write(batch) called: message_count=%zu", msg.size());
-  not_implemented();
+void ReductStoreStorage::write(
+  const std::vector<std::shared_ptr<const rosbag2_storage::SerializedBagMessage>>& messages)
+{
+  write_messages(messages);
+}
+
+void ReductStoreStorage::write_messages(
+  const std::vector<std::shared_ptr<const rosbag2_storage::SerializedBagMessage>>& messages)
+{
+  if (!bucket_) {
+    throw std::runtime_error("ReductStore bucket is not initialized; call open() first");
+  }
+
+  RCUTILS_LOG_DEBUG_NAMED(kLogger, "Writing %zu message(s)", messages.size());
+  for (size_t begin = 0; begin < messages.size();) {
+    const auto end = begin + std::min(config_.max_records_per_batch, messages.size() - begin);
+    write_batch(messages, begin, end);
+    begin = end;
+  }
+}
+
+void ReductStoreStorage::write_batch(
+  const std::vector<std::shared_ptr<const rosbag2_storage::SerializedBagMessage>>& messages,
+  size_t begin,
+  size_t end)
+{
+  const auto write_result = bucket_->WriteBatch([this, &messages, begin, end](reduct::IBucket::Batch* batch) {
+    for (auto index = begin; index < end; ++index) {
+      const auto& message = messages[index];
+      if (!message) {
+        throw std::invalid_argument("Cannot write a null serialized bag message");
+      }
+      add_message_to_batch(*batch, *message);
+    }
+  });
+  if (write_result.error) {
+    throw std::runtime_error("Failed to write ReductStore message batch: " +
+                             write_result.error.ToString());
+  }
+  if (!write_result.result.empty()) {
+    const auto& [entry_name, errors] = *write_result.result.begin();
+    const auto& [timestamp, error] = *errors.begin();
+    static_cast<void>(timestamp);
+    throw std::runtime_error("Failed to write ReductStore message to entry '" + entry_name + "': " +
+                             error.ToString());
+  }
+}
+
+void ReductStoreStorage::add_message_to_batch(
+  reduct::IBucket::Batch& batch,
+  const rosbag2_storage::SerializedBagMessage& message) const
+{
+  const auto entry_name = entry_name_from_topic(message.topic_name);
+  const auto* serialized_data = message.serialized_data.get();
+  if (!serialized_data || (serialized_data->buffer_length != 0 && !serialized_data->buffer)) {
+    throw std::invalid_argument("Serialized bag message for topic '" + message.topic_name +
+                                "' has no payload buffer");
+  }
+
+  const auto timestamp = reduct::IClient::Time(std::chrono::nanoseconds(message.recv_timestamp));
+  const auto* data = reinterpret_cast<const char*>(serialized_data->buffer);
+  batch.AddRecord(entry_name, timestamp,
+                  std::string(data == nullptr ? "" : data, serialized_data->buffer_length));
 }
 
 void ReductStoreStorage::update_metadata(const rosbag2_storage::BagMetadata& bag_metadata) {

@@ -23,6 +23,7 @@
 
 #include <reduct/client.h>
 
+#include <cstddef>
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -64,10 +65,19 @@ class ROSBAG2_STORAGE_REDUCTSTORE_PUBLIC ReductStoreStorage
   void seek(const rcutils_time_point_value_t& timestamp) override;
 
  private:
+  void write_messages(
+    const std::vector<std::shared_ptr<const rosbag2_storage::SerializedBagMessage>>& messages);
+  void write_batch(
+    const std::vector<std::shared_ptr<const rosbag2_storage::SerializedBagMessage>>& messages,
+    size_t begin,
+    size_t end);
+  void add_message_to_batch(
+    reduct::IBucket::Batch& batch,
+    const rosbag2_storage::SerializedBagMessage& message) const;
+
   ReductStoreConfig config_;
   std::string bucket_name_;
   std::string uri_;
-  rosbag2_storage::storage_interfaces::IOFlag io_flag_ = rosbag2_storage::storage_interfaces::IOFlag::READ_WRITE;
   std::unique_ptr<reduct::IClient> client_;
   std::unique_ptr<reduct::IBucket> bucket_;
 

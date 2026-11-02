@@ -21,6 +21,7 @@
 #ifndef ROSBAG2_STORAGE_REDUCTSTORE__CONFIG_HPP_
 #define ROSBAG2_STORAGE_REDUCTSTORE__CONFIG_HPP_
 
+#include <cstddef>
 #include <string>
 
 #include "rosbag2_storage_reductstore/visibility_control.hpp"
@@ -32,6 +33,7 @@ struct ReductStoreConfig
 {
   std::string url;
   std::string api_token;
+  size_t max_records_per_batch = 80;
 };
 
 ROSBAG2_STORAGE_REDUCTSTORE_PUBLIC ReductStoreConfig load_config(const std::string & path);

@@ -34,6 +34,7 @@ The plugin identifier is `reductstore`. Configuration is a flat YAML file passed
 ```yaml
 url: http://localhost:8383
 api_token_env: REDUCTSTORE_API_TOKEN
+max_records_per_batch: 80
 ```
 
 - `url` is required.
@@ -41,6 +42,7 @@ api_token_env: REDUCTSTORE_API_TOKEN
 - `api_token_env` is optional and names an environment variable holding the token.
 - Omitting both token fields uses anonymous access.
 - Supplying both token fields, an empty URL, or a missing/empty environment variable is an error. Credential values are never included in errors.
+- `max_records_per_batch` is optional, defaults to `80`, and controls the maximum number of messages sent in each write request.
 
 The example configuration is installed as `config/reductstore.yaml.example`.
 
