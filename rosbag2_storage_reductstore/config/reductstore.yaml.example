@@ -1,3 +1,4 @@
 # Keep credentials out of this file. Set REDUCTSTORE_API_TOKEN in the environment instead.
 url: http://localhost:8383
 api_token_env: REDUCTSTORE_API_TOKEN
+max_records_per_batch: 80

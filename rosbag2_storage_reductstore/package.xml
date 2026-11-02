@@ -2,11 +2,12 @@
 <package format="3">
   <name>rosbag2_storage_reductstore</name>
   <version>0.1.0</version>
-  <description>ReductStore storage plugin scaffold for rosbag2 on ROS 2 Jazzy.</description>
+  <description>ReductStore storage plugin scaffold for rosbag2 on ROS 2.</description>
   <maintainer email="contact@reduct.store">ReductStore</maintainer>
   <license>MIT</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
+  <buildtool_depend>ament_cmake_python</buildtool_depend>
 
   <depend>pluginlib</depend>
   <depend>reductcpp_vendor</depend>
