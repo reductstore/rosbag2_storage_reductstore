@@ -90,4 +90,25 @@ TEST(Storage, SupportsOnlyAscendingReceivedTimestampReadOrder)
     storage.set_read_order({rosbag2_storage::ReadOrder::File, false}), std::runtime_error);
 }
 
+TEST(Storage, StoresAndResetsReadFilter)
+{
+  rosbag2_storage_reductstore::ReductStoreStorage storage;
+  rosbag2_storage::StorageFilter filter;
+  filter.topics = {"/chatter"};
+  filter.regex = "/chat.*";
+  EXPECT_NO_THROW(storage.set_filter(filter));
+  EXPECT_NO_THROW(storage.reset_filter());
+}
+
+TEST(Storage, HandlesEmptyReadStateWithoutBackend)
+{
+  rosbag2_storage_reductstore::ReductStoreStorage storage;
+  std::vector<rosbag2_storage::MessageDefinition> definitions;
+
+  EXPECT_FALSE(storage.has_next());
+  EXPECT_THROW(storage.read_next(), std::runtime_error);
+  EXPECT_NO_THROW(storage.get_all_message_definitions(definitions));
+  EXPECT_TRUE(definitions.empty());
+}
+
 }  // namespace

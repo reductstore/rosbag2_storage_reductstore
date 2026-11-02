@@ -24,8 +24,14 @@
 #include <reduct/client.h>
 
 #include <cstddef>
+#include <condition_variable>
+#include <deque>
+#include <exception>
 #include <memory>
+#include <mutex>
+#include <optional>
 #include <string>
+#include <thread>
 #include <unordered_map>
 #include <vector>
 
@@ -65,6 +71,12 @@ class ROSBAG2_STORAGE_REDUCTSTORE_PUBLIC ReductStoreStorage
   void seek(const rcutils_time_point_value_t& timestamp) override;
 
  private:
+  struct CachedRecord {
+    std::string entry;
+    reduct::IClient::Time timestamp;
+    std::string data;
+  };
+
   void write_messages(
     const std::vector<std::shared_ptr<const rosbag2_storage::SerializedBagMessage>>& messages);
   void write_batch(
@@ -74,16 +86,28 @@ class ROSBAG2_STORAGE_REDUCTSTORE_PUBLIC ReductStoreStorage
   void add_message_to_batch(
     reduct::IBucket::Batch& batch,
     const rosbag2_storage::SerializedBagMessage& message) const;
+  std::vector<std::string> filtered_entry_names() const;
+  void start_query();
+  void stop_query();
 
   ReductStoreConfig config_;
   std::string bucket_name_;
   std::string uri_;
   std::unique_ptr<reduct::IClient> client_;
   std::unique_ptr<reduct::IBucket> bucket_;
+  std::unique_ptr<reduct::IBucket> query_bucket_;
 
   rosbag2_storage::BagMetadata metadata_;
   std::unordered_map<std::string, rosbag2_storage::TopicMetadata> topics_;
   std::unordered_map<std::string, rosbag2_storage::MessageDefinition> message_definitions_;
+  rosbag2_storage::StorageFilter filter_;
+  std::optional<reduct::IClient::Time> seek_timestamp_;
+  std::jthread query_thread_;
+  std::mutex query_mutex_;
+  std::condition_variable query_condition_;
+  std::deque<CachedRecord> records_;
+  std::exception_ptr query_error_;
+  bool query_finished_ = true;
 };
 
 }  // namespace rosbag2_storage_reductstore
