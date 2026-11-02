@@ -249,8 +249,9 @@ void ReductStoreStorage::create_topic(const rosbag2_storage::TopicMetadata& topi
 }
 
 void ReductStoreStorage::remove_topic(const rosbag2_storage::TopicMetadata& topic) {
-  static_cast<void>(topic);
-  not_implemented();
+  RCUTILS_LOG_DEBUG_NAMED(kLogger, "remove_topic called: name='%s'", topic.name.c_str());
+  topics_.erase(topic.name);
+  message_definitions_.erase(topic.name);
 }
 
 bool ReductStoreStorage::set_read_order(const rosbag2_storage::ReadOrder& read_order) {
