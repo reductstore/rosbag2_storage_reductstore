@@ -69,6 +69,24 @@ bool is_safe_bucket_name(const std::string & value)
   return true;
 }
 
+size_t positive_size_value(const YAML::Node & node, const char * name, size_t default_value)
+{
+  if (!node) {
+    return default_value;
+  }
+  if (!node.IsScalar()) {
+    throw std::runtime_error(std::string("ReductStore configuration field '") + name +
+        "' must be a positive integer");
+  }
+
+  const auto value = node.as<size_t>();
+  if (value == 0) {
+    throw std::runtime_error(std::string("ReductStore configuration field '") + name +
+        "' must be greater than zero");
+  }
+  return value;
+}
+
 }  // namespace
 
 ReductStoreConfig load_config(const std::string & path)
@@ -91,6 +109,8 @@ ReductStoreConfig load_config(const std::string & path)
   ReductStoreConfig config;
   try {
     config.url = scalar_value(root["url"], "url", true);
+    config.max_records_per_batch = positive_size_value(
+      root["max_records_per_batch"], "max_records_per_batch", config.max_records_per_batch);
     const auto direct_token_node = root["api_token"];
     const auto token_environment_node = root["api_token_env"];
     const auto direct_token = scalar_value(direct_token_node, "api_token", false);
