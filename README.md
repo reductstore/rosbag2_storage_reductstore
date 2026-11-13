@@ -1,15 +1,13 @@
 # rosbag2_storage_reductstore
 
-ROS 2 Jazzy `rosbag2` storage plugin scaffold for ReductStore.
-
-> **Status:** This package does not implement recording, playback, remote bucket I/O, metadata persistence, or schema attachments. Every `open()` and data operation fails explicitly so it cannot silently lose messages or appear to create a valid remote bag.
+ROS 2 Jazzy `rosbag2` storage plugin for ReductStore.
 
 ## Requirements
 
 - Ubuntu 24.04
 - ROS 2 Jazzy
 - `ros-jazzy-ament-cmake-vendor-package` and `python3-vcstool`
-- ReductCPP build dependencies: `libconcurrentqueue-dev`, `libcpp-httplib-dev`, `libfmt-dev`, `libssl-dev`, and `nlohmann-json3-dev`. The bundled `reductcpp_vendor` package fetches and builds reductcpp v1.21.2. Attachment APIs needed by the planned backend require reductcpp 1.19 or later.
+- ReductCPP build dependencies: `libconcurrentqueue-dev`, `libcpp-httplib-dev`, `libfmt-dev`, `libssl-dev`, and `nlohmann-json3-dev`. The bundled `reductcpp_vendor` package fetches and builds reductcpp v1.21.2. The backend requires ReductCPP 1.19 or later for attachment APIs.
 
 ## Build
 
@@ -29,7 +27,7 @@ sudo apt-get install ros-jazzy-ament-cmake-vendor-package python3-vcstool \
 
 ## Plugin And Configuration
 
-The plugin identifier is `reductstore`. Configuration is a flat YAML file passed through rosbag's storage configuration option:
+The plugin identifier is `reductstore`. Configuration is a flat YAML connection file:
 
 ```yaml
 url: http://localhost:8383
@@ -46,19 +44,29 @@ max_records_per_batch: 80
 
 The example configuration is installed as `config/reductstore.yaml.example`.
 
-One rosbag will map to one future ReductStore bucket. For Jazzy's usual storage URI `<bag-dir>/<bag-name>_0`, the bucket name is `<bag-name>`; other URIs use their basename. The original URI remains in local `metadata.yaml` as rosbag's relative storage path. The local rosbag directory and metadata file are retained.
+Each ReductStore bucket is one remote bag. Standard `ros2 bag record` receives a local URI, so it derives the bucket name from that URI and retains the local output directory and `metadata.yaml`.
 
-## Planned Data Model
+## Data Model
 
-ReductStore will not receive rosbag files. The future backend will write each serialized ROS message as a raw ReductStore record, organized into entries by ROS topic. The message type definition and serialization metadata will be stored as an entry-level `$schema` attachment. This preserves message payloads as raw data while keeping the schema adjacent to the topic entry that owns it.
+ReductStore stores each serialized ROS message as a raw record in an entry named for its ROS topic. The message type definition and serialization metadata are stored as an entry-level `$schema` attachment, keeping the schema adjacent to the topic entry that owns it.
 
-## Future Commands
+## Remote Playback
 
-These are the intended commands after backend I/O is implemented. They currently fail with `ReductStore storage backend is not implemented`.
+`ros2 reductstore play` takes a ReductStore bucket directly. The bucket is not a local path, and the connection configuration remains a local YAML file:
 
 ```bash
-ros2 bag record --storage reductstore --storage-config-file reductstore.yaml /topic
-ros2 bag play my_bag --storage reductstore --storage-config-file reductstore.yaml
+ros2 reductstore play <bucket> \
+  --storage-config-file reductstore.yaml \
+  --topics /chatter
+```
+
+The command supports playback rate, topic filtering, QoS override files, looping, remapping, start-paused mode, start offsets, acknowledgement waiting, and log-level selection. No local directory or `metadata.yaml` named after `<bucket>` is required.
+
+Remote-only recording is constrained by rosbag2 Jazzy's recorder, which always creates a local output directory and `metadata.yaml`. Use the standard command until rosbag2 provides a remote-writer path:
+
+```bash
+ros2 bag record --storage reductstore --storage-config-file reductstore.yaml \
+  --output ./local-bag --topics /chatter
 ```
 
 Bagfile size and duration splitting, snapshot mode, and append mode are intentionally unsupported and fail during `open()`.
@@ -67,6 +75,7 @@ Bagfile size and duration splitting, snapshot mode, and append mode are intentio
 
 ```bash
 source /opt/ros/jazzy/setup.bash
-colcon test --packages-select rosbag2_storage_reductstore
+REDUCTSTORE_URL=http://127.0.0.1:8383 \
+  colcon test --packages-select rosbag2_storage_reductstore
 colcon test-result --verbose
 ```

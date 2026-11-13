@@ -185,6 +185,9 @@ void ReductStoreStorage::open(
     throw std::runtime_error("ReductStore returned an empty query bucket handle for '" +
         bucket_name_ + "'");
   }
+  if (io_flag == rosbag2_storage::storage_interfaces::IOFlag::READ_ONLY) {
+    start_query();
+  }
 
   RCUTILS_LOG_INFO_NAMED(
     "rosbag2_storage_reductstore",
