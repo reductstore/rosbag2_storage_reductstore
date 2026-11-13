@@ -80,8 +80,8 @@ if(BUILD_TESTING)
   ament_target_dependencies(test_plugin pluginlib rosbag2_storage)
   target_link_libraries(test_plugin ${PROJECT_NAME})
 
-  ament_add_test(test_remote_play_cli
-    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test/test_remote_play_cli.py
+  ament_add_test(test_remote_cli
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test/test_remote_cli.py
     APPEND_ENV "PYTHONPATH=${CMAKE_CURRENT_SOURCE_DIR}/python"
     GENERATE_RESULT_FOR_RETURN_CODE_ZERO)
 endif()

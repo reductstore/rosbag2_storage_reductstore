@@ -44,13 +44,28 @@ max_records_per_batch: 80
 
 The example configuration is installed as `config/reductstore.yaml.example`.
 
-Each ReductStore bucket is one remote bag. Standard `ros2 bag record` receives a local URI, so it derives the bucket name from that URI and retains the local output directory and `metadata.yaml`.
+Each ReductStore bucket is one remote bag. `ros2 reductstore record` and `ros2 reductstore play` use the bucket as a remote identifier, while `--storage-config-file` is the local connection configuration.
 
 ## Data Model
 
 ReductStore stores each serialized ROS message as a raw record in an entry named for its ROS topic. The message type definition and serialization metadata are stored as an entry-level `$schema` attachment, keeping the schema adjacent to the topic entry that owns it.
 
+## Remote Recording
+
+`ros2 reductstore record` records directly to a remote bucket:
+
+```bash
+ros2 reductstore record [<bucket>] \
+  --storage-config-file reductstore.yaml \
+  --topics /chatter
+```
+
+If `<bucket>` is omitted, the command creates a remote bucket named `rosbag2_YYYY_MM_DD-HH_MM_SS`. The command accepts the same topic discovery, QoS, filtering, service, compression, pause, and log-level options as `ros2 bag record`.
+
+Jazzy internally requires a bag directory and `metadata.yaml`, so the command creates a private temporary workspace and removes it on normal exit. Message data is written to ReductStore, no output directory is retained, and `--output` is rejected because it names a local path in standard rosbag2.
+
 ## Remote Playback
+
 
 `ros2 reductstore play` takes a ReductStore bucket directly. The bucket is not a local path, and the connection configuration remains a local YAML file:
 
@@ -62,12 +77,6 @@ ros2 reductstore play <bucket> \
 
 The command supports playback rate, topic filtering, QoS override files, looping, remapping, start-paused mode, start offsets, acknowledgement waiting, and log-level selection. No local directory or `metadata.yaml` named after `<bucket>` is required.
 
-Remote-only recording is constrained by rosbag2 Jazzy's recorder, which always creates a local output directory and `metadata.yaml`. Use the standard command until rosbag2 provides a remote-writer path:
-
-```bash
-ros2 bag record --storage reductstore --storage-config-file reductstore.yaml \
-  --output ./local-bag --topics /chatter
-```
 
 Bagfile size and duration splitting, snapshot mode, and append mode are intentionally unsupported and fail during `open()`.
 
