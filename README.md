@@ -62,7 +62,7 @@ ros2 reductstore record [<bucket>] \
 
 If `<bucket>` is omitted, the command creates a remote bucket named `rosbag2_YYYY_MM_DD-HH_MM_SS`. The command accepts the same topic discovery, QoS, filtering, service, compression, pause, and log-level options as `ros2 bag record`.
 
-Jazzy internally requires a bag directory and `metadata.yaml`, so the command creates a private temporary workspace and removes it on normal exit. Message data is written to ReductStore, no output directory is retained, and `--output` is rejected because it names a local path in standard rosbag2.
+Jazzy internally requires a bag directory and `metadata.yaml`, so the command creates a private temporary workspace and removes it on normal exit. Message data is written to ReductStore, no output directory is retained, and the command does not accept `--output` because it names a local path in standard rosbag2.
 
 ## Remote Playback
 

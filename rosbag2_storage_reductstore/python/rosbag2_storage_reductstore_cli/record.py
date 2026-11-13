@@ -24,12 +24,20 @@ import datetime
 from pathlib import Path
 import tempfile
 
-from ros2bag.api import print_error
 from ros2bag.verb.record import RecordVerb as RosbagRecordVerb
 
 
 class RecordVerb(RosbagRecordVerb):
     """Record ROS data directly into a remote ReductStore bucket."""
+
+    @staticmethod
+    def remove_argument(parser, destination):
+        """Remove an upstream parser argument invalid for remote recording."""
+        action = next(action for action in parser._actions if action.dest == destination)
+        for option in action.option_strings:
+            del parser._option_string_actions[option]
+        parser._remove_action(action)
+        parser._optionals._group_actions.remove(action)
 
     def add_arguments(self, parser, cli_name):
         """Register remote recording arguments."""
@@ -39,15 +47,12 @@ class RecordVerb(RosbagRecordVerb):
             help='Remote ReductStore bucket to record, defaults to a timestamped bucket.',
         )
         super().add_arguments(parser, cli_name)
+        self.remove_argument(parser, 'output')
+        self.remove_argument(parser, 'storage')
         parser.set_defaults(storage='reductstore')
 
     def main(self, *, args):
         """Record through a temporary upstream writer workspace."""
-        if args.output:
-            return print_error('Use the optional bucket argument instead of --output.')
-        if args.storage != 'reductstore':
-            return print_error('ros2 reductstore record only supports the reductstore storage.')
-
         bucket = args.bucket or datetime.datetime.now().strftime('rosbag2_%Y_%m_%d-%H_%M_%S')
         with tempfile.TemporaryDirectory(prefix='rosbag2-reductstore-') as directory:
             args.output = str(Path(directory) / bucket)

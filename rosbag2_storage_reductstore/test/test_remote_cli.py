@@ -116,6 +116,18 @@ class RemoteStorageCliTest(unittest.TestCase):
             entry_points['rosbag2_storage_reductstore_cli.verb'],
         )
 
+    def test_record_help_excludes_local_output_options(self):
+        """Do not expose local output or storage options for remote recording."""
+        result = subprocess.run(
+            ['ros2', 'reductstore', 'record', '--help'],
+            capture_output=True,
+            text=True,
+        )
+
+        self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+        self.assertNotIn('--output', result.stdout)
+        self.assertNotIn('--storage ', result.stdout)
+
     @unittest.skipUnless(
         os.environ.get('REDUCTSTORE_URL'),
         'REDUCTSTORE_URL is required for remote playback integration coverage.',
