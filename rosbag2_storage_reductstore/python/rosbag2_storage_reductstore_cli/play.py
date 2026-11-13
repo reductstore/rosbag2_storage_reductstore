@@ -141,9 +141,12 @@ class PlayVerb(VerbExtension):
         play_options.topic_qos_profile_overrides = qos_profile_overrides
         play_options.loop = args.loop
         play_options.topic_remapping_options = [
-            option
-            for rule in args.remap
-            for option in ('--remap', rule)
+            '--ros-args',
+            *[
+                option
+                for rule in args.remap
+                for option in ('--remap', rule)
+            ],
         ]
         play_options.start_paused = args.start_paused
         play_options.start_offset = args.start_offset

@@ -165,10 +165,14 @@ void ReductStoreStorage::open(
   if (!client_) {
     throw std::runtime_error("Failed to initialize ReductStore client");
   }
-  auto bucket_result = client_->GetOrCreateBucket(bucket_name_);
+  auto bucket_result =
+    io_flag == rosbag2_storage::storage_interfaces::IOFlag::READ_ONLY ?
+    client_->GetBucket(bucket_name_) : client_->CreateBucket(bucket_name_);
   if (bucket_result.error) {
-    throw std::runtime_error("Failed to get or create ReductStore bucket '" + bucket_name_ +
-                             "': " + bucket_result.error.ToString());
+    const auto operation =
+      io_flag == rosbag2_storage::storage_interfaces::IOFlag::READ_ONLY ? "find" : "create";
+    throw std::runtime_error("Failed to " + std::string(operation) + " ReductStore bucket '" +
+                             bucket_name_ + "': " + bucket_result.error.ToString());
   }
   bucket_ = std::move(bucket_result.result);
   if (!bucket_) {

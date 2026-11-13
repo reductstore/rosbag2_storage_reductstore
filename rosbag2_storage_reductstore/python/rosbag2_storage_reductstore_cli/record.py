@@ -20,11 +20,20 @@
 
 """Remote ReductStore recording command."""
 
+from argparse import ArgumentTypeError
 import datetime
 from pathlib import Path
+import re
 import tempfile
 
 from ros2bag.verb.record import RecordVerb as RosbagRecordVerb
+
+
+def validate_bucket_name(bucket):
+    """Reject names unsafe for a ReductStore bucket or temporary directory."""
+    if not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.-]*', bucket):
+        raise ArgumentTypeError(f'Invalid ReductStore bucket name: {bucket}')
+    return bucket
 
 
 class RecordVerb(RosbagRecordVerb):
@@ -44,12 +53,28 @@ class RecordVerb(RosbagRecordVerb):
         parser.add_argument(
             'bucket',
             nargs='?',
+            type=validate_bucket_name,
             help='Remote ReductStore bucket to record, defaults to a timestamped bucket.',
         )
         super().add_arguments(parser, cli_name)
-        self.remove_argument(parser, 'output')
-        self.remove_argument(parser, 'storage')
-        parser.set_defaults(storage='reductstore')
+        for destination in (
+            'output',
+            'storage',
+            'compression_queue_size',
+            'compression_threads',
+            'compression_threads_priority',
+            'compression_mode',
+            'compression_format',
+        ):
+            self.remove_argument(parser, destination)
+        parser.set_defaults(
+            storage='reductstore',
+            compression_mode='none',
+            compression_format='',
+            compression_queue_size=0,
+            compression_threads=0,
+            compression_threads_priority=0,
+        )
 
     def main(self, *, args):
         """Record through a temporary upstream writer workspace."""

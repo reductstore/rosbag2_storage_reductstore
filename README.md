@@ -60,7 +60,9 @@ ros2 reductstore record [<bucket>] \
   --topics /chatter
 ```
 
-If `<bucket>` is omitted, the command creates a remote bucket named `rosbag2_YYYY_MM_DD-HH_MM_SS`. The command accepts the same topic discovery, QoS, filtering, service, compression, pause, and log-level options as `ros2 bag record`.
+If `<bucket>` is omitted, the command creates a remote bucket named `rosbag2_YYYY_MM_DD-HH_MM_SS`. The command accepts the same topic discovery, QoS, filtering, service, pause, and log-level options as `ros2 bag record`. Compression options are unavailable because remote playback does not support ROS compression.
+
+Recording requires a new bucket. An existing bucket is rejected to prevent mixing experiments or overwriting messages. Bucket names must begin with an ASCII letter or digit and may otherwise contain only ASCII letters, digits, `.`, `_`, and `-`.
 
 Jazzy internally requires a bag directory and `metadata.yaml`, so the command creates a private temporary workspace and removes it on normal exit. Message data is written to ReductStore, no output directory is retained, and the command does not accept `--output` because it names a local path in standard rosbag2.
 
@@ -75,7 +77,7 @@ ros2 reductstore play <bucket> \
   --topics /chatter
 ```
 
-The command supports playback rate, topic filtering, QoS override files, looping, remapping, start-paused mode, start offsets, acknowledgement waiting, and log-level selection. No local directory or `metadata.yaml` named after `<bucket>` is required.
+The command supports playback rate, topic filtering, QoS override files, looping, remapping, start-paused mode, start offsets, acknowledgement waiting, and log-level selection. No local directory or `metadata.yaml` named after `<bucket>` is required. Playback fails if the bucket does not exist and never creates it.
 
 
 Bagfile size and duration splitting, snapshot mode, and append mode are intentionally unsupported and fail during `open()`.
