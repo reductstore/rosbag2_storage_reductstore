@@ -39,6 +39,7 @@ import uuid
 sys.path.insert(0, str(Path(__file__).parents[1] / 'python'))
 
 from rosbag2_storage_reductstore_cli.options import build_storage_options  # noqa: E402
+from rosbag2_storage_reductstore_cli.play import PlayVerb  # noqa: E402
 from rosbag2_storage_reductstore_cli.record import RecordVerb  # noqa: E402
 
 
@@ -102,6 +103,13 @@ class RemoteStorageCliTest(unittest.TestCase):
         RecordVerb().add_arguments(parser, 'ros2 reductstore record')
         return parser
 
+    @staticmethod
+    def play_parser():
+        """Build the remote player parser."""
+        parser = argparse.ArgumentParser()
+        PlayVerb().add_arguments(parser, 'ros2 reductstore play')
+        return parser
+
     def wait_for(self, condition, description):
         """Wait for an asynchronous condition before timing out."""
         deadline = time.monotonic() + 10
@@ -154,6 +162,26 @@ class RemoteStorageCliTest(unittest.TestCase):
         self.assertNotIn('--output', result.stdout)
         self.assertNotIn('--storage ', result.stdout)
         self.assertNotIn('--compression-', result.stdout)
+
+    def test_play_parser_inherits_jazzy_service_filters(self):
+        """Accept the upstream service filter for a remote bucket."""
+        with tempfile.TemporaryDirectory() as directory:
+            config_path = Path(directory) / 'reductstore.yaml'
+            config_path.touch()
+            args = self.play_parser().parse_args(
+                [
+                    'remote-bucket',
+                    '--storage-config-file',
+                    str(config_path),
+                    '--services',
+                    '/example_service',
+                ]
+            )
+            try:
+                self.assertEqual('remote-bucket', args.bucket)
+                self.assertEqual(['/example_service'], args.services)
+            finally:
+                args.storage_config_file.close()
 
     def test_record_parser_rejects_unsafe_bucket_name(self):
         """Reject a bucket name that can escape the temporary workspace."""
