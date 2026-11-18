@@ -602,6 +602,7 @@ class RemoteStorageCliTest(unittest.TestCase):
                 recorder.send_signal(signal.SIGINT)
                 output, _ = recorder.communicate(timeout=30)
                 self.assertEqual(0, recorder.returncode, output)
+
                 def received_expected_sequence():
                     return any(
                         received[index:index + len(expected)] == expected
