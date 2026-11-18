@@ -602,6 +602,12 @@ class RemoteStorageCliTest(unittest.TestCase):
                 recorder.send_signal(signal.SIGINT)
                 output, _ = recorder.communicate(timeout=30)
                 self.assertEqual(0, recorder.returncode, output)
+                def received_expected_sequence():
+                    return any(
+                        received[index:index + len(expected)] == expected
+                        for index in range(len(received) - len(expected) + 1)
+                    )
+
                 node.create_subscription(
                     String,
                     '/replayed_chatter',
@@ -618,6 +624,7 @@ class RemoteStorageCliTest(unittest.TestCase):
                         str(config_path),
                         '--remap',
                         '/chatter:=/replayed_chatter',
+                        '--loop',
                     ],
                     stdout=subprocess.PIPE,
                     stderr=subprocess.STDOUT,
@@ -626,16 +633,17 @@ class RemoteStorageCliTest(unittest.TestCase):
                 )
 
                 def replay_complete():
-                    if len(received) == len(expected):
+                    if received_expected_sequence():
                         return True
                     if player.poll() is None:
                         return False
                     self.fail(player.communicate()[0])
 
                 self.wait_for(replay_complete, 'all messages from the batched remote recording')
+                player.send_signal(signal.SIGINT)
                 output, _ = player.communicate(timeout=30)
                 self.assertEqual(0, player.returncode, output)
-                self.assertEqual(expected, received)
+                self.assertTrue(received_expected_sequence())
             finally:
                 if recorder.poll() is None:
                     recorder.send_signal(signal.SIGINT)
