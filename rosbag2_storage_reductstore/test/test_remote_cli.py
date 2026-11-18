@@ -422,6 +422,162 @@ class RemoteStorageCliTest(unittest.TestCase):
                 rclpy.shutdown()
                 self.delete_bucket(bucket)
 
+    @unittest.skipUnless(
+        os.environ.get('REDUCTSTORE_URL'),
+        'REDUCTSTORE_URL is required for remote playback integration coverage.',
+    )
+    def test_plays_only_the_selected_topics(self):
+        """Replay only the topics passed to --topics and exclude the rest."""
+        import rclpy
+        from rclpy.qos import qos_profile_sensor_data
+        from std_msgs.msg import String
+
+        bucket = f'remote-filter-{uuid.uuid4().hex}'
+        with tempfile.TemporaryDirectory() as directory:
+            config_path = self.write_config(directory)
+            rclpy.init()
+            node = rclpy.create_node('remote_filter_test')
+            chatter_pub = node.create_publisher(String, '/chatter', qos_profile_sensor_data)
+            other_pub = node.create_publisher(String, '/other', qos_profile_sensor_data)
+            spin_thread = threading.Thread(target=rclpy.spin, args=(node,), daemon=True)
+            spin_thread.start()
+            recorder = subprocess.Popen(
+                [
+                    'ros2',
+                    'reductstore',
+                    'record',
+                    bucket,
+                    '--storage-config-file',
+                    str(config_path),
+                    '--topics',
+                    '/chatter',
+                    '/other',
+                ],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                cwd=directory,
+                text=True,
+            )
+            player = None
+            try:
+                def recorder_subscribed():
+                    if recorder.poll() is not None:
+                        self.fail(recorder.communicate()[0])
+                    return (node.count_subscribers('/chatter') > 0 and
+                            node.count_subscribers('/other') > 0)
+
+                self.wait_for(recorder_subscribed, 'the remote recorder subscriptions')
+                for _ in range(20):
+                    chatter_pub.publish(String(data='chatter-msg'))
+                    other_pub.publish(String(data='other-msg'))
+                    time.sleep(0.1)
+                recorder.send_signal(signal.SIGINT)
+                output, _ = recorder.communicate(timeout=30)
+                self.assertEqual(0, recorder.returncode, output)
+
+                received_chatter = []
+                received_other = []
+                node.create_subscription(
+                    String,
+                    '/chatter',
+                    lambda message: received_chatter.append(message.data),
+                    qos_profile_sensor_data,
+                )
+                node.create_subscription(
+                    String,
+                    '/other',
+                    lambda message: received_other.append(message.data),
+                    qos_profile_sensor_data,
+                )
+                player = subprocess.Popen(
+                    [
+                        'ros2',
+                        'reductstore',
+                        'play',
+                        bucket,
+                        '--storage-config-file',
+                        str(config_path),
+                        '--topics',
+                        '/chatter',
+                    ],
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                    cwd=directory,
+                    text=True,
+                )
+
+                def replayed_chatter():
+                    if 'chatter-msg' in received_chatter:
+                        return True
+                    if player.poll() is None:
+                        return False
+                    self.fail(player.communicate()[0])
+
+                self.wait_for(replayed_chatter, 'a replayed /chatter message')
+                output, _ = player.communicate(timeout=30)
+                self.assertEqual(0, player.returncode, output)
+                self.assertEqual([], received_other)
+            finally:
+                if recorder.poll() is None:
+                    recorder.send_signal(signal.SIGINT)
+                    recorder.communicate(timeout=30)
+                if player and player.poll() is None:
+                    player.send_signal(signal.SIGINT)
+                    player.communicate(timeout=30)
+                node.destroy_node()
+                rclpy.shutdown()
+                self.delete_bucket(bucket)
+
+    def test_record_fails_without_a_local_directory_when_unreachable(self):
+        """Fail recording cleanly when the ReductStore server is unreachable."""
+        with tempfile.TemporaryDirectory() as directory:
+            config_path = Path(directory) / 'reductstore.yaml'
+            config_path.write_text('url: http://127.0.0.1:1\n', encoding='utf-8')
+            bucket = f'remote-unreachable-{uuid.uuid4().hex}'
+            result = subprocess.run(
+                [
+                    'ros2',
+                    'reductstore',
+                    'record',
+                    bucket,
+                    '--storage-config-file',
+                    str(config_path),
+                    '--topics',
+                    '/chatter',
+                ],
+                capture_output=True,
+                cwd=directory,
+                text=True,
+                timeout=30,
+            )
+
+            self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
+            self.assertFalse((Path(directory) / bucket).exists())
+
+    def test_play_fails_when_the_remote_server_is_unreachable(self):
+        """Fail playback cleanly when the ReductStore server is unreachable."""
+        with tempfile.TemporaryDirectory() as directory:
+            config_path = Path(directory) / 'reductstore.yaml'
+            config_path.write_text('url: http://127.0.0.1:1\n', encoding='utf-8')
+            bucket = f'remote-unreachable-{uuid.uuid4().hex}'
+            result = subprocess.run(
+                [
+                    'ros2',
+                    'reductstore',
+                    'play',
+                    bucket,
+                    '--storage-config-file',
+                    str(config_path),
+                ],
+                capture_output=True,
+                cwd=directory,
+                text=True,
+                timeout=30,
+            )
+
+            self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
+            self.assertFalse((Path(directory) / bucket).exists())
+
 
 if __name__ == '__main__':
     unittest.main()
