@@ -556,6 +556,106 @@ class RemoteStorageCliTest(unittest.TestCase):
                 rclpy.shutdown()
                 self.delete_bucket(bucket)
 
+    @unittest.skipUnless(
+        os.environ.get('REDUCTSTORE_URL'),
+        'REDUCTSTORE_URL is required for remote batching integration coverage.',
+    )
+    def test_records_and_replays_all_messages_across_backend_batches(self):
+        """Record and replay ordered messages split across backend batches."""
+        import rclpy
+        from rclpy.qos import QoSProfile
+        from std_msgs.msg import String
+
+        bucket = f'remote-batch-{uuid.uuid4().hex}'
+        expected = [f'batch-{index}' for index in range(13)]
+        with tempfile.TemporaryDirectory() as directory:
+            config_path = self.write_config(directory)
+            with config_path.open('a', encoding='utf-8') as config:
+                config.write('max_records_per_batch: 5\n')
+            rclpy.init()
+            node = rclpy.create_node('remote_batch_test')
+            qos = QoSProfile(depth=100)
+            publisher = node.create_publisher(String, '/chatter', qos)
+            spin_thread = threading.Thread(target=rclpy.spin, args=(node,), daemon=True)
+            spin_thread.start()
+            recorder = subprocess.Popen(
+                [
+                    'ros2',
+                    'reductstore',
+                    'record',
+                    bucket,
+                    '--storage-config-file',
+                    str(config_path),
+                    '--max-cache-size',
+                    '1048576',
+                    '--topics',
+                    '/chatter',
+                ],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                cwd=directory,
+                text=True,
+            )
+            player = None
+            received = []
+            try:
+                def recorder_subscribed():
+                    if recorder.poll() is not None:
+                        self.fail(recorder.communicate()[0])
+                    return node.count_subscribers('/chatter') > 0
+
+                self.wait_for(recorder_subscribed, 'the batched remote recorder subscription')
+                for message in expected:
+                    publisher.publish(String(data=message))
+                    time.sleep(0.05)
+                recorder.send_signal(signal.SIGINT)
+                output, _ = recorder.communicate(timeout=30)
+                self.assertEqual(0, recorder.returncode, output)
+                node.create_subscription(
+                    String,
+                    '/replayed_chatter',
+                    lambda message: received.append(message.data),
+                    qos,
+                )
+                player = subprocess.Popen(
+                    [
+                        'ros2',
+                        'reductstore',
+                        'play',
+                        bucket,
+                        '--storage-config-file',
+                        str(config_path),
+                        '--remap',
+                        '/chatter:=/replayed_chatter',
+                    ],
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                    cwd=directory,
+                    text=True,
+                )
+
+                def replay_complete():
+                    if len(received) == len(expected):
+                        return True
+                    if player.poll() is None:
+                        return False
+                    self.fail(player.communicate()[0])
+
+                self.wait_for(replay_complete, 'all messages from the batched remote recording')
+                output, _ = player.communicate(timeout=30)
+                self.assertEqual(0, player.returncode, output)
+                self.assertEqual(expected, received)
+            finally:
+                if recorder.poll() is None:
+                    recorder.send_signal(signal.SIGINT)
+                    recorder.communicate(timeout=30)
+                if player and player.poll() is None:
+                    player.send_signal(signal.SIGINT)
+                    player.communicate(timeout=30)
+                node.destroy_node()
+                rclpy.shutdown()
+                self.delete_bucket(bucket)
+
     def test_record_fails_without_a_local_directory_when_unreachable(self):
         """Fail recording cleanly when the ReductStore server is unreachable."""
         with tempfile.TemporaryDirectory() as directory:
