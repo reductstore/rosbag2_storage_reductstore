@@ -60,7 +60,7 @@ ros2 reductstore record [<bucket>] \
   --topics /chatter
 ```
 
-If `<bucket>` is omitted, the command creates a remote bucket named `rosbag2_YYYY_MM_DD-HH_MM_SS`. The command accepts the same topic discovery, QoS, filtering, service, pause, and log-level options as `ros2 bag record`. Compression options are unavailable because remote playback does not support ROS compression.
+The command supports topic and service discovery, QoS override files, topic and service filtering, pause controls, cache sizing, simulated time, and log-level selection. Local bag options for output paths, storage selection and presets, compression, bagfile splitting, and snapshot mode are unavailable.
 
 Recording requires a new bucket. An existing bucket is rejected to prevent mixing experiments or overwriting messages. Bucket names must begin with an ASCII letter or digit and may otherwise contain only ASCII letters, digits, `.`, `_`, and `-`.
 

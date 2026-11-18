@@ -151,7 +151,7 @@ class RemoteStorageCliTest(unittest.TestCase):
         )
 
     def test_record_help_excludes_unsupported_options(self):
-        """Do not expose local output, storage, or compression options."""
+        """Do not expose unsupported local recorder options."""
         result = subprocess.run(
             ['ros2', 'reductstore', 'record', '--help'],
             capture_output=True,
@@ -159,9 +159,16 @@ class RemoteStorageCliTest(unittest.TestCase):
         )
 
         self.assertEqual(0, result.returncode, result.stdout + result.stderr)
-        self.assertNotIn('--output', result.stdout)
-        self.assertNotIn('--storage ', result.stdout)
-        self.assertNotIn('--compression-', result.stdout)
+        for option in (
+            '--output',
+            '--storage ',
+            '--compression-',
+            '--max-bag-size',
+            '--max-bag-duration',
+            '--snapshot-mode',
+            '--storage-preset-profile',
+        ):
+            self.assertNotIn(option, result.stdout)
 
     def test_play_help_excludes_unsupported_service_filters(self):
         """Do not expose service filtering until remote playback supports it."""
