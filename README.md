@@ -64,7 +64,6 @@ The command supports topic and service discovery, QoS override files, topic and 
 
 Recording requires a new bucket. An existing bucket is rejected to prevent mixing experiments or overwriting messages. Bucket names must begin with an ASCII letter or digit and may otherwise contain only ASCII letters, digits, `.`, `_`, and `-`.
 
-Jazzy internally requires a bag directory and `metadata.yaml`, so the command creates a private temporary workspace and removes it on normal exit. Message data is written to ReductStore, no output directory is retained, and the command does not accept `--output` because it names a local path in standard rosbag2.
 
 ## Remote Playback
 
