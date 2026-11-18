@@ -163,25 +163,9 @@ class RemoteStorageCliTest(unittest.TestCase):
         self.assertNotIn('--storage ', result.stdout)
         self.assertNotIn('--compression-', result.stdout)
 
-    def test_play_parser_inherits_jazzy_service_filters(self):
-        """Accept the upstream service filter for a remote bucket."""
-        with tempfile.TemporaryDirectory() as directory:
-            config_path = Path(directory) / 'reductstore.yaml'
-            config_path.touch()
-            args = self.play_parser().parse_args(
-                [
-                    'remote-bucket',
-                    '--storage-config-file',
-                    str(config_path),
-                    '--services',
-                    '/example_service',
-                ]
-            )
-            try:
-                self.assertEqual('remote-bucket', args.bucket)
-                self.assertEqual(['/example_service'], args.services)
-            finally:
-                args.storage_config_file.close()
+    def test_play_help_excludes_unsupported_service_filters(self):
+        """Do not expose service filtering until remote playback supports it."""
+        self.assertNotIn('--services', self.play_parser().format_help())
 
     def test_record_parser_rejects_unsafe_bucket_name(self):
         """Reject a bucket name that can escape the temporary workspace."""
