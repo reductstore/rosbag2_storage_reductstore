@@ -3,3 +3,6 @@ install/
 log/
 .colcon/
 compile_commands.json
+__pycache__/
+*.py[cod]
+reductstore.yaml

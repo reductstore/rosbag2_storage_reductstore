@@ -66,6 +66,7 @@ install(TARGETS ${PROJECT_NAME}
 
 if(BUILD_TESTING)
   find_package(ament_cmake_gtest REQUIRED)
+  find_package(ament_cmake_test REQUIRED)
   find_package(ament_lint_auto REQUIRED)
   ament_lint_auto_find_test_dependencies()
 
@@ -78,6 +79,11 @@ if(BUILD_TESTING)
   ament_add_gtest(test_plugin test/test_plugin.cpp)
   ament_target_dependencies(test_plugin pluginlib rosbag2_storage)
   target_link_libraries(test_plugin ${PROJECT_NAME})
+
+  ament_add_test(test_remote_cli
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test/test_remote_cli.py
+    APPEND_ENV "PYTHONPATH=${CMAKE_CURRENT_SOURCE_DIR}/python"
+    GENERATE_RESULT_FOR_RETURN_CODE_ZERO)
 endif()
 
 ament_export_include_directories(include)
